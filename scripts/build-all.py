@@ -26,17 +26,21 @@ import shutil
 import os
 import subprocess
 import logging
-import re
 
 logging.basicConfig(level=logging.INFO)
 
 # print(get_associations())
 for tc in testcases:
-    logging.debug('Test case %s begin', tc['@id'])
+    logging.info('Test case %s begin', tc['@id'])
 
     # We will build the tc in this dir
     build_dir = Path(tmp / tc['@id'])
     build_dir.mkdir(exist_ok=True)
+    
+    exename = 'a.out'
+    if (build_dir / exename).exists():
+        logging.info("Skipping test case %s because it's already built.", tc['@id'])
+        continue
     
     # Copy all files to this directory
     cs = []
@@ -63,7 +67,6 @@ for tc in testcases:
     # Build the tc
     instruction = tc['@instruction']
     args = instruction.split()
-    # args += ['-o', re.sub(r'(.*)_main\.c', r'\1', main.name)]
     logging.debug('Build command: %s', args)
     process = subprocess.Popen(args=args, cwd=build_cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out, _ = process.communicate()
@@ -74,4 +77,6 @@ for tc in testcases:
     else:
         logging.debug('Build output:\n%s', out_str)
     
-    logging.debug('Test case %s built', tc['@id'])
+    exe = build_cwd / exename
+    shutil.copy(exe, build_dir)
+    logging.info('Test case %s built', tc['@id'])
